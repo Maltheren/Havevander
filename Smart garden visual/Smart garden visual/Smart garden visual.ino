@@ -61,14 +61,28 @@ unsigned long subbyte(unsigned long input, int from, int length){			//subbyte(lo
 }
 
 void command(unsigned long k) {
+	int tid = 0;
+	int ugedag = 0;
+	int channel = 0;
+	int mode = 0;
 
 	switch (subbyte(k, 1, 3)) {
 	
 	case 1:
 		Serial.println("command 1: 'write'");
-		if (subbyte(k, 5, 0) == 1) {
+		if (subbyte(k, 5, 0) == 1) {				//start
 			Serial.println(subbyte(k, 5, 0), BIN);
-			Serial.println("subbyte is 1");
+			if (subbyte(k, 6, 0) == 1) {		//tid
+				
+				tid = subbyte(k, 7, 10); 		//11 bit tid efter midnat
+				channel = subbyte(k, 11, 3);	//ugedag	0 = hver dag
+
+			}
+			else {
+
+
+			}
+
 		}
 		else {
 			Serial.println(subbyte(k, 5, 0), BIN);
