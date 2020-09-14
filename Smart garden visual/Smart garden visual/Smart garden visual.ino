@@ -1,7 +1,7 @@
 /*
  Name:		Smart_garden_visual.ino
  Created:	9/13/2020 7:07:33 PM
- Author:	Malthe Holm Sennels.
+ Author:	Malthe Holm Sennels. hest
 */
 #define ch1 5
 #define	ch2	4
