@@ -1,7 +1,7 @@
 /*
  Name:		Smart_garden_visual.ino
  Created:	9/13/2020 7:07:33 PM
- Author:	armin
+ Author:	Malthe Holm Sennels.
 */
 #define ch1 5
 #define	ch2	4
@@ -13,14 +13,16 @@ void setup() {
 	pinMode(ch2, OUTPUT);
 	pinMode(ch3, OUTPUT);
 	Serial.begin(9600);
-	
+	Serial.println("progam start");
 }
 
 
 void loop() {
-	unsigned long test = B11011110;
-	Serial.println(subbyte(test, 26, 4),BIN);
-	delay(10000);
+	unsigned long test = 0x18000000;
+	Serial.println(test, BIN);
+	command(test);
+	delay(1000);
+
 }
 
 
@@ -30,7 +32,9 @@ unsigned long readcmd(long d, long c, long b, long a) {
 	return data;
 }
 
-unsigned long write(long k) {
+
+
+void write(unsigned long k) {
 	int x = 0;
 	while(cmddata[x] != 0){
 		x++;
@@ -38,37 +42,46 @@ unsigned long write(long k) {
 	cmddata[x] = k;
 }
 
-unsigned long subbyte(unsigned long k, int i, int length){			//subbyte(long, from, to);
-	Serial.println(k, BIN);
+unsigned long subbyte(unsigned long input, int from, int length){			//subbyte(long, from, to); inkluderer 1 from og to (start 0)
 	unsigned long check = 1;
 	unsigned long output = 0;
-	Serial.print("before:   ");
-	Serial.println(check, BIN);
-	check <<= (32-i);
-	Serial.print("after:   ");
-	Serial.println(check, BIN);
+	check = check << (32-from);
 	int z = 0;
-	Serial.println("first loop");
 	while (z <= length) {
-		Serial.println(check, BIN);
-		check >> 1;
-		output ^= (check & k);
+		output ^= (check & input);
+		check = check >> 1;
 		z++;
-		delay(1000);
 	}
-	while ((output & 1) != 1) {
-		output >> 1;
-
-		return output;
+	z = 0;
+	while (z < 32-(from + length)) {
+			output = output >> 1;
+			z++;
 	}
+	return output;
 }
 
+void command(unsigned long k) {
 
+	switch (subbyte(k, 1, 3)) {
+	
+	case 1:
+		Serial.println("command 1: 'write'");
+		if (subbyte(k, 5, 0) == 1) {
+			Serial.println(subbyte(k, 5, 0), BIN);
+			Serial.println("subbyte is 1");
+		}
+		else {
+			Serial.println(subbyte(k, 5, 0), BIN);
+			Serial.println("subbyte is not 1");
+		}
+		break;
+	case 2:
 
+		break;
+	case 3:
+		break;
+	}
 
-void command(long k) {
-	long input = k;
-	long check = 0x80000000;
 }
 
 
