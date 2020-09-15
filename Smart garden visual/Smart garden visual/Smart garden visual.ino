@@ -8,8 +8,10 @@
 #define	ch3	3
 
 long cmddata[100];
+bool executed[100];
 int  Tnow = 0;
 int	dagnow = 0;
+
 void setup() {
 	pinMode(ch1, OUTPUT);
 	pinMode(ch2, OUTPUT);
