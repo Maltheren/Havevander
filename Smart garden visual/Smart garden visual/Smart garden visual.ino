@@ -8,6 +8,8 @@
 #define	ch3	3
 
 long cmddata[100];
+int  Tnow = 0;
+int	dagnow = 0;
 void setup() {
 	pinMode(ch1, OUTPUT);
 	pinMode(ch2, OUTPUT);
@@ -61,39 +63,34 @@ unsigned long subbyte(unsigned long input, int from, int length){			//subbyte(lo
 }
 
 void command(unsigned long k) {
-	int tid = 0;
-	int ugedag = 0;
-	int channel = 0;
-	int mode = 0;
+	bool start = false;
 
-	switch (subbyte(k, 1, 3)) {
-	
-	case 1:
-		Serial.println("command 1: 'write'");
-		if (subbyte(k, 5, 0) == 1) {				//start
-			Serial.println(subbyte(k, 5, 0), BIN);
-			if (subbyte(k, 6, 0) == 1) {		//tid
-				
-				tid = subbyte(k, 7, 10); 		//11 bit tid efter midnat
-				channel = subbyte(k, 11, 3);	//ugedag	0 = hver dag
+	if(subbyte(k, 1, 3) == 1){
+		int channel = subbyte(k, 5, 1); //finder den channel der skal bruges
+		if (subbyte(k, 7, 0) == 1) {
+			//case tid start
+			int Tstart = subbyte(k, 8, 10);
+			int	dag = subbyte(k, 19, 2);
+			if (dag == dagnow || dag == 0) {
+				if (Tstart > Tnow) {
+					start = true;
+				}
+			}
+			if(subbyte(k, 22, 0) == 1) {
+			//case tid stop
+
+			int Tstop = subbyte(k, 23, 9);
+			
 
 			}
 			else {
-
+			//fugt stop
 
 			}
-
 		}
 		else {
-			Serial.println(subbyte(k, 5, 0), BIN);
-			Serial.println("subbyte is not 1");
-		}
-		break;
-	case 2:
 
-		break;
-	case 3:
-		break;
+		}
 	}
 
 }
