@@ -14,7 +14,7 @@ long cmddata[100];
 bool executed[100];
 int Tnow = 0;
 int	dagnow = 0;
-String menu1[] = { "Alarmer", "Data", "indstillinger"};
+String menu1[] = { "Alarmer", "Data", "indstillinger", "test 1", "test 2", "test 3" };
 
 
 void setup() {
