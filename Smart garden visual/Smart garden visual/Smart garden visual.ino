@@ -9,7 +9,7 @@
 
 long cmddata[100];
 bool executed[100];
-int  Tnow = 0;
+int Tnow = 0;
 int	dagnow = 0;
 
 void setup() {
@@ -22,8 +22,8 @@ void setup() {
 
 
 void loop() {
-	unsigned long test = 0x18000000;
-	Serial.println(test, BIN);
+	unsigned long test = 0x1A8AC42A;
+	Serial.println(test, BIN;
 	command(test);
 	delay(1000);
 
@@ -73,17 +73,23 @@ void command(unsigned long k) {
 			//case tid start
 			int Tstart = subbyte(k, 8, 10);
 			int	dag = subbyte(k, 19, 2);
-			if (dag == dagnow || dag == 0) {
+			/*if (dag == dagnow || dag == 0) {
 				if (Tstart > Tnow) {
 					start = true;
 				}
-			}
+			}*/
 			if(subbyte(k, 22, 0) == 1) {
 			//case tid stop
 
-			int Tstop = subbyte(k, 23, 9);
-			
-
+				int Tstop = subbyte(k, 23, 9);
+				Serial.print("channel:  ");
+				Serial.println(channel);
+				Serial.print("Tstart:  ");
+				Serial.println(Tstart);
+				Serial.print("Dag:  ");
+				Serial.println(dag);
+				Serial.print("Længde:  ");
+				Serial.println(Tstop);
 			}
 			else {
 			//fugt stop
