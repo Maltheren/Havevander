@@ -3,31 +3,52 @@
  Created:	9/13/2020 7:07:33 PM
  Author:	Malthe Holm Sennels. hest
 */
+#include <LiquidCrystal.h>
 #define ch1 5
 #define	ch2	4
 #define	ch3	3
+
+LiquidCrystal lcd(13, 12, 8, 9, 10, 11);
 
 long cmddata[100];
 bool executed[100];
 int Tnow = 0;
 int	dagnow = 0;
+String menu1[] = { "Alarmer", "Data", "indstillinger"};
+
 
 void setup() {
+	lcd.begin(16, 2);
 	pinMode(ch1, OUTPUT);
 	pinMode(ch2, OUTPUT);
 	pinMode(ch3, OUTPUT);
 	Serial.begin(9600);
 	Serial.println("progam start");
+	lcd.print("smartgarden");
+	lcd.setCursor(0, 1);
+	lcd.print("V. 1.01")
 }
 
 
 void loop() {
-	unsigned long test = 0x1A8AC42A;
-	Serial.println(test, BIN;
-	command(test);
-	delay(1000);
+	//unsigned long test = 0x1A8AC42A;
+	lcdwrite(cursor, menu1);
+	delay(3000);
+	cursor++;
+	if (cursor > 4) { cursor = 0; }
 
 }
+
+void lcdwrite(int i, String menu[]) {
+	lcd.clear();
+	i = constrain(i, 0, 4);
+	lcd.setCursor(0, 0);
+	lcd.print(menu1[i]);
+	lcd.setCursor(0, 1);
+	lcd.print(menu1[i + 1]);
+
+}
+
 
 
 unsigned long readcmd(long d, long c, long b, long a) {
@@ -38,7 +59,7 @@ unsigned long readcmd(long d, long c, long b, long a) {
 
 
 
-void write(unsigned long k) {
+void writearray(unsigned long k) {
 	int x = 0;
 	while(cmddata[x] != 0){
 		x++;
