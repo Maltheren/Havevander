@@ -7,39 +7,107 @@
 #define ch1 5
 #define	ch2	4
 #define	ch3	3
-
+#define en1	6
+#define en2 7
+#define sw A5
 LiquidCrystal lcd(13, 12, 8, 9, 10, 11);
 
 long cmddata[100];
 bool executed[100];
 int Tnow = 0;
 int	dagnow = 0;
+bool enstate;
+bool enlast;
+bool state2;
 String menu1[] = { "Alarmer", "Data", "indstillinger", "test 1", "test 2", "test 3" };
 
 
 void setup() {
 	lcd.begin(16, 2);
-	pinMode(ch1, OUTPUT);
-	pinMode(ch2, OUTPUT);
-	pinMode(ch3, OUTPUT);
 	Serial.begin(9600);
 	Serial.println("progam start");
 	lcd.print("smartgarden");
 	lcd.setCursor(0, 1);
-	lcd.print("V. 1.01")
+	lcd.print("V. 0.9");
+
+	pinMode(ch1, OUTPUT);
+	pinMode(ch2, OUTPUT);
+	pinMode(ch3, OUTPUT);
+	pinMode(en1, INPUT);
+	pinMode(en2, INPUT);
+	pinMode(sw, INPUT_PULLUP);
+
+	enlast = digitalRead(en1);
 }
 
-
+int cursor = 0;
 void loop() {
 	//unsigned long test = 0x1A8AC42A;
-	lcdwrite(cursor, menu1);
-	delay(3000);
-	cursor++;
-	if (cursor > 4) { cursor = 0; }
+/*	if (encoderRead() == -1) {
+		cursor--;
+		Serial.print(cursor);
+	}
+	else if (encoderRead() == 1) {
+		cursor++;
+		Serial.print(cursor);
+	}*/
+
+	/*	if (digitalRead(en1) == HIGH) {
+			Serial.println("en1");
+		}
+		if (digitalRead(en1) == HIGH) {
+			Serial.println("en2");
+		}*/
+
+	int input = encoderRead();
+	if (input == 1) {
+		Serial.println("1");
+	}
+	if (input == 2) {
+		Serial.println("2");
+	}
+	if (input == 3) {
+		Serial.println("sw");
+	}
+	//lcdwrite(cursor);
+	input = 0;
+}
+
+
+
+int encoderRead() {
+
+	enstate = digitalRead(en1);
+	state2 = digitalRead(en2);
+
+
+	if (enstate != enlast) {
+		if (state2 != enstate) {
+			enlast = enstate;
+			Serial.println("iteration");
+			while (digitalRead(en1) == HIGH && digitalRead(en2) == HIGH) { delay(10); }
+			return 1;
+		}
+		else {
+			enlast = enstate;
+			Serial.println("iteration");
+			while (digitalRead(en1) == HIGH && digitalRead(en2) == HIGH) { delay(10); }
+			return 2;
+		}
+	}
+
+	if (digitalRead(sw) == LOW) {
+		while (digitalRead(sw) == LOW) { delay(10); }
+		Serial.println("iteration");
+		return 3;
+	}
+	enlast = enstate;
+	return 0;
 
 }
 
-void lcdwrite(int i, String menu[]) {
+
+void lcdwrite(int i) {
 	lcd.clear();
 	i = constrain(i, 0, 4);
 	lcd.setCursor(0, 0);
@@ -61,16 +129,16 @@ unsigned long readcmd(long d, long c, long b, long a) {
 
 void writearray(unsigned long k) {
 	int x = 0;
-	while(cmddata[x] != 0){
+	while (cmddata[x] != 0) {
 		x++;
 	}
 	cmddata[x] = k;
 }
 
-unsigned long subbyte(unsigned long input, int from, int length){			//subbyte(long, from, to); inkluderer 1 from og to (start 0)
+unsigned long subbyte(unsigned long input, int from, int length) {			//subbyte(long, from, to); inkluderer 1 from og to (start 0)
 	unsigned long check = 1;
 	unsigned long output = 0;
-	check = check << (32-from);
+	check = check << (32 - from);
 	int z = 0;
 	while (z <= length) {
 		output ^= (check & input);
@@ -78,9 +146,9 @@ unsigned long subbyte(unsigned long input, int from, int length){			//subbyte(lo
 		z++;
 	}
 	z = 0;
-	while (z < 32-(from + length)) {
-			output = output >> 1;
-			z++;
+	while (z < 32 - (from + length)) {
+		output = output >> 1;
+		z++;
 	}
 	return output;
 }
@@ -88,7 +156,7 @@ unsigned long subbyte(unsigned long input, int from, int length){			//subbyte(lo
 void command(unsigned long k) {
 	bool start = false;
 
-	if(subbyte(k, 1, 3) == 1){
+	if (subbyte(k, 1, 3) == 1) {
 		int channel = subbyte(k, 5, 1); //finder den channel der skal bruges
 		if (subbyte(k, 7, 0) == 1) {
 			//case tid start
@@ -99,8 +167,8 @@ void command(unsigned long k) {
 					start = true;
 				}
 			}*/
-			if(subbyte(k, 22, 0) == 1) {
-			//case tid stop
+			if (subbyte(k, 22, 0) == 1) {
+				//case tid stop
 
 				int Tstop = subbyte(k, 23, 9);
 				Serial.print("channel:  ");
@@ -113,7 +181,7 @@ void command(unsigned long k) {
 				Serial.println(Tstop);
 			}
 			else {
-			//fugt stop
+				//fugt stop
 
 			}
 		}
