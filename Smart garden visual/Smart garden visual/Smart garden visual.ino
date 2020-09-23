@@ -9,7 +9,7 @@
 #define	ch3	3
 #define en1	6
 #define en2 7
-#define sw A5
+#define sw A6
 LiquidCrystal lcd(13, 12, 8, 9, 10, 11);
 
 long cmddata[100];
@@ -28,7 +28,7 @@ void setup() {
 	Serial.println("progam start");
 	lcd.print("smartgarden");
 	lcd.setCursor(0, 1);
-	lcd.print("V. 0.9");
+	lcd.print("V. 0.91");
 
 	pinMode(ch1, OUTPUT);
 	pinMode(ch2, OUTPUT);
@@ -36,35 +36,24 @@ void setup() {
 	pinMode(en1, INPUT);
 	pinMode(en2, INPUT);
 	pinMode(sw, INPUT_PULLUP);
-
 	enlast = digitalRead(en1);
+	Serial.println("startup succes");
 }
 
 int cursor = 0;
 void loop() {
-	//unsigned long test = 0x1A8AC42A;
-/*	if (encoderRead() == -1) {
-		cursor--;
-		Serial.print(cursor);
-	}
-	else if (encoderRead() == 1) {
-		cursor++;
-		Serial.print(cursor);
-	}*/
-
-	/*	if (digitalRead(en1) == HIGH) {
-			Serial.println("en1");
-		}
-		if (digitalRead(en1) == HIGH) {
-			Serial.println("en2");
-		}*/
 
 	int input = encoderRead();
 	if (input == 1) {
-		Serial.println("1");
+		cursor++;
+		lcdwrite(cursor);
+		if (cursor > 4) { cursor = 4; };
+
 	}
 	if (input == 2) {
-		Serial.println("2");
+		cursor--;
+		lcdwrite(cursor);
+		if (cursor < 0) { cursor = 0; }
 	}
 	if (input == 3) {
 		Serial.println("sw");
@@ -79,31 +68,24 @@ int encoderRead() {
 
 	enstate = digitalRead(en1);
 	state2 = digitalRead(en2);
-
-
-	if (enstate != enlast) {
-		if (state2 != enstate) {
+	if (enstate == LOW) {
+		if (state2 != LOW) {
+			while (digitalRead(en1) != HIGH || digitalRead(en2) != HIGH) { delay(10); }
 			enlast = enstate;
-			Serial.println("iteration");
-			while (digitalRead(en1) == HIGH && digitalRead(en2) == HIGH) { delay(10); }
 			return 1;
 		}
 		else {
+			while (digitalRead(en1) != HIGH || digitalRead(en2) != HIGH) { delay(10); }
 			enlast = enstate;
-			Serial.println("iteration");
-			while (digitalRead(en1) == HIGH && digitalRead(en2) == HIGH) { delay(10); }
 			return 2;
 		}
 	}
-
-	if (digitalRead(sw) == LOW) {
+	/*if (digitalRead(sw) == LOW) {
 		while (digitalRead(sw) == LOW) { delay(10); }
 		Serial.println("iteration");
 		return 3;
-	}
-	enlast = enstate;
+	}*/
 	return 0;
-
 }
 
 
@@ -112,6 +94,8 @@ void lcdwrite(int i) {
 	i = constrain(i, 0, 4);
 	lcd.setCursor(0, 0);
 	lcd.print(menu1[i]);
+	lcd.setCursor(15, 0);
+	lcd.print("<");
 	lcd.setCursor(0, 1);
 	lcd.print(menu1[i + 1]);
 
@@ -124,8 +108,6 @@ unsigned long readcmd(long d, long c, long b, long a) {
 	data = a + (b << 8) + (c << 16) + (d << 24);
 	return data;
 }
-
-
 
 void writearray(unsigned long k) {
 	int x = 0;
@@ -191,7 +173,6 @@ void command(unsigned long k) {
 	}
 
 }
-
 
 void action() {
 
