@@ -12,7 +12,7 @@
 #define sw A3
 LiquidCrystal lcd(13, 12, 8, 9, 10, 11);
 
-long cmddata[100];
+long cmddata[50];
 bool executed[100];
 int Tnow = 0;
 int	dagnow = 0;
@@ -20,8 +20,7 @@ bool enstate;
 bool enlast;
 bool state2;
 String menu1[] = { "Alarmer", "Data", "indstillinger", "test 1", "test 2", "test 3" };
-
-
+int8_t cursor = 0;
 void setup() {
 	lcd.begin(16, 2);
 	Serial.begin(9600);
@@ -38,50 +37,154 @@ void setup() {
 	pinMode(sw, INPUT_PULLUP);
 	enlast = digitalRead(en1);
 	Serial.println("startup succes");
+	lcdwrite(cursor);
 }
 
-int cursor = 0;
+
 void loop() {
 
 	int input = encoderRead();
 	if (input == 1) {
 		cursor++;
-		lcdwrite(cursor);
 		if (cursor > 4) { cursor = 4; };
+		lcdwrite(cursor);
+
 
 	}
 	if (input == 2) {
 		cursor--;
-		lcdwrite(cursor);
 		if (cursor < 0) { cursor = 0; }
+		lcdwrite(cursor);
+
 	}
 	if (input == 3) {
 		if (cursor == 1) {
-			Serial.println("Alarmer");
 			Data();
 		}
+		if (cursor == 0) {
+			alarm();
+		}
+		lcdwrite(cursor);
 	}
 	//lcdwrite(cursor);
 	input = 0;
 }
 
 void Data() {
-	while (true) {
-		//lcd.clear();
-		/*int dta1 = map(analogRead(ch1), 0, 1024, 0, 100);
-		int dta2 = map(analogRead(ch2), 0, 1024, 0, 100);
-		int dta3 = map(analogRead(ch3), 0, 1024, 0, 100);*/
-		lcd.setCursor(0, 0);
-		lcd.print(100 + "%");
-		lcd.setCursor(6, 0);
-		lcd.print(100 + "%");
-		lcd.setCursor(11, 0);
-		lcd.print(100 + "%");
-		delay(10000);
-
-	}
+	Serial.println("Alarmer");
+	lcd.clear();
+	int dta1 = map(analogRead(ch1), 0, 1024, 0, 100);
+	int dta2 = map(analogRead(ch2), 0, 1024, 0, 100);
+	int dta3 = map(analogRead(ch3), 0, 1024, 0, 100);
+	lcd.setCursor(0, 0);
+	lcd.print(100);
+	lcd.print("%");
+	lcd.setCursor(6, 0);
+	lcd.print(100);
+	lcd.print("%");
+	lcd.setCursor(12, 0);
+	lcd.print(100);
+	lcd.print("%");
+	lcd.setCursor(1, 1);
+	lcd.print("ch1");
+	lcd.setCursor(7, 1);
+	lcd.print("ch2");
+	lcd.setCursor(13, 1);
+	lcd.print("ch3");
+	while (encoderRead() != 3) { delay(10); }
+	lcd.clear();
+	lcd.setCursor(0, 0);
+	lcd.print("Luftfugtighed:");
+	lcd.setCursor(0, 1);
+	lcd.print(100);
+	lcd.print("%");
+	while (encoderRead() != 3) { delay(10); }
 }
 
+void alarm() {
+
+	uint8_t cursor2 = 0;
+	lcd.setCursor(0, 0);
+	lcd.clear();
+	lcd.println("Ny alarm");
+	lcd.setCursor(0, 1);
+	lcd.print("Alarmliste");
+	uint8_t i = 0;
+	lcd.setCursor(15, 0);
+	lcd.println("<");
+	while (i != 3) {
+		i = encoderRead();
+		if (i == 1) {
+			cursor2 = 0;
+			lcd.setCursor(15, 1);
+			lcd.println(" ");
+			lcd.setCursor(15, 0);
+			lcd.println("<");
+		}
+		if (i == 2) {
+			cursor2 = 1;
+			lcd.setCursor(15, 0);
+			lcd.println(" ");
+			lcd.setCursor(15, 1);
+			lcd.println("<");
+		}
+	}
+	while (encoderRead() == 3) { delay(100); }
+	if (cursor2 == 0) {					// ny alarm
+		unsigned long command = 0x10000000;
+		lcd.clear();
+		lcd.setCursor(0, 0);
+		lcd.print("Bestem Kanal:");
+		lcd.setCursor(0, 1);
+		lcd.print("- kanal nr.");
+		cursor2 = 1;
+		i = 0;
+		while (i != 3) {					//vælg kanal
+			i = encoderRead();
+			if (i == 1) {
+				cursor2++;
+				if (cursor2 > 3) { cursor2 = 1; }
+			}
+			if (i == 2) {
+				cursor2--;
+				if (cursor2 < 1) { cursor2 = 3; }
+			}
+			if (i != 0) {
+				lcd.setCursor(13, 1);
+				lcd.print(cursor2);
+			}
+
+		}
+		unsigned long channel = cursor2;
+		command |= channel << 26;
+		Serial.println(command, BIN);
+
+		lcd.clear();
+		lcd.setCursor(0, 0);
+		lcd.print("Startbetingelse:");
+		i = 0;
+		while (i != 3) {
+			i = encoderRead();
+			if (i == 1) {
+				lcd.setCursor(0, 1);
+				lcd.print("            ");
+				lcd.setCursor(0, 1);
+				lcd.print("- Tidsstying");
+			}
+			if (i == 2) {
+				lcd.setCursor(0, 1);
+				lcd.print("            ");
+				lcd.setCursor(0, 1);
+				lcd.print("- Fugtighed");
+			}
+		}
+		if (i == 1) {
+
+
+		}
+	}
+
+}
 
 int encoderRead() {
 
@@ -101,14 +204,12 @@ int encoderRead() {
 	}
 	if (digitalRead(sw) == LOW) {
 		while (digitalRead(sw) == LOW) { delay(10); }
-		Serial.println("iteration");
 		return 3;
 	}
 	return 0;
 }
 
-
-void lcdwrite(int i) {
+void lcdwrite(uint8_t i) {
 	lcd.clear();
 	i = constrain(i, 0, 4);
 	lcd.setCursor(0, 0);
@@ -122,7 +223,7 @@ void lcdwrite(int i) {
 
 
 
-unsigned long readcmd(long d, long c, long b, long a) {
+unsigned long readcmd(uint8_t d, uint8_t c, uint8_t b, uint8_t a) {
 	unsigned long data;
 	data = a + (b << 8) + (c << 16) + (d << 24);
 	return data;
