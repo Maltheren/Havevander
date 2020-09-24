@@ -9,7 +9,7 @@
 #define	ch3	3
 #define en1	6
 #define en2 7
-#define sw A6
+#define sw A3
 LiquidCrystal lcd(13, 12, 8, 9, 10, 11);
 
 long cmddata[100];
@@ -26,9 +26,9 @@ void setup() {
 	lcd.begin(16, 2);
 	Serial.begin(9600);
 	Serial.println("progam start");
-	lcd.print("smartgarden");
+	//lcd.print("smartgarden");
 	lcd.setCursor(0, 1);
-	lcd.print("V. 0.91");
+	//lcd.print("V. 0.91");
 
 	pinMode(ch1, OUTPUT);
 	pinMode(ch2, OUTPUT);
@@ -56,12 +56,31 @@ void loop() {
 		if (cursor < 0) { cursor = 0; }
 	}
 	if (input == 3) {
-		Serial.println("sw");
+		if (cursor == 1) {
+			Serial.println("Alarmer");
+			Data();
+		}
 	}
 	//lcdwrite(cursor);
 	input = 0;
 }
 
+void Data() {
+	while (true) {
+		//lcd.clear();
+		/*int dta1 = map(analogRead(ch1), 0, 1024, 0, 100);
+		int dta2 = map(analogRead(ch2), 0, 1024, 0, 100);
+		int dta3 = map(analogRead(ch3), 0, 1024, 0, 100);*/
+		lcd.setCursor(0, 0);
+		lcd.print(100 + "%");
+		lcd.setCursor(6, 0);
+		lcd.print(100 + "%");
+		lcd.setCursor(11, 0);
+		lcd.print(100 + "%");
+		delay(10000);
+
+	}
+}
 
 
 int encoderRead() {
@@ -80,11 +99,11 @@ int encoderRead() {
 			return 2;
 		}
 	}
-	/*if (digitalRead(sw) == LOW) {
+	if (digitalRead(sw) == LOW) {
 		while (digitalRead(sw) == LOW) { delay(10); }
 		Serial.println("iteration");
 		return 3;
-	}*/
+	}
 	return 0;
 }
 
