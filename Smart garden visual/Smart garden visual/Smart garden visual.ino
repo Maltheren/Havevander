@@ -129,7 +129,7 @@ void alarm() {
 			lcd.println("<");
 		}
 	}
-	while (encoderRead() == 3) { delay(100); }
+	debounce();
 	if (cursor2 == 0) {					// ny alarm
 		unsigned long command = 0x10000000;
 		lcd.clear();
@@ -155,38 +155,132 @@ void alarm() {
 			}
 
 		}
-		unsigned long channel = cursor2;
-		command |= channel << 26;
+		unsigned long modifier = cursor2;
+		command |= modifier << 26;
 		Serial.println(command, BIN);
-
+		debounce();
 		lcd.clear();
 		lcd.setCursor(0, 0);
 		lcd.print("Startbetingelse:");
 		i = 0;
+		bool state = 0;
 		while (i != 3) {
 			i = encoderRead();
 			if (i == 1) {
+				state = 1;
 				lcd.setCursor(0, 1);
 				lcd.print("            ");
 				lcd.setCursor(0, 1);
 				lcd.print("- Tidsstying");
 			}
 			if (i == 2) {
+				state = 0;
 				lcd.setCursor(0, 1);
 				lcd.print("            ");
 				lcd.setCursor(0, 1);
 				lcd.print("- Fugtighed");
 			}
 		}
-		if (i == 1) {
+		debounce();
+		if (state == 1) {				//if tid start
+			modifier = 1;
+			command |= modifier << 25;
+			Serial.println(command, BIN);
+			lcd.clear();
+			lcd.setCursor(0, 0);
+			lcd.print("starttidspunkt");
+			lcd.setCursor(0, 1);
+			lcd.print("00 : 00");
+			i = 0;
+			int hour = 0;
+			int minute = 0;
+			while (i != 3) {
+				i = encoderRead();
+				if (i == 2) {
+					hour++;
+					if (hour > 23) {
+						hour = 0;
+					}
+					lcd.setCursor(0, 1);
+					if (hour < 10) {
+						lcd.print("0");
+					}
+					lcd.print(hour);
+				}
+				if (i == 1) {
+					hour--;
+					if (hour < 0) {
+						hour = 23;
+					}
+					lcd.setCursor(0, 1);
+					if (hour < 10) {
+						lcd.print("0");
+					}
+					lcd.print(hour);
+				}
+			}
+			debounce();
+			i = 0;
+			while (i != 3) {
+				i = encoderRead();
+				if (i == 2) {
+					minute++;
+					if (minute > 59) {
+						minute = 0;
+					}
+					lcd.setCursor(5, 1);
+					if (minute < 10) {
+						lcd.print("0");
+					}
+					lcd.print(minute);
+				}
+				if (i == 1) {
+					minute--;
+					if (minute < 0) {
+						minute = 59;
+					}
+					lcd.setCursor(5, 1);
+					if (minute < 10) {
+						lcd.print("0");
+					}
+					lcd.print(minute);
+				}
 
+			}
+			modifier = (hour * 60 + minute);
+			command |= modifier << 14;
+			Serial.println(command, BIN);
+			debounce();
+			lcd.clear();
+			lcd.setCursor(0, 0);
+			lcd.print("Ugedag: ");
+			String dage[] = { "Hver dag","Mandag   ", "Tirsdag  ", "Onsdag   ", "Torsdag  ", "Fredag   ", "Lørdag   ", "Søndag   " };
+			cursor2 = 0;
+			i = 0;
+			while (i != 3) {
+				i = encoderRead();							// <=========================================
+				if (i == 1) {
+					cursor++;
+					if (cursor > 7) {
+						cursor = 0;
+					}
+					lcd.setCursor(0, 0);
+					lcd.print(dage[cursor2]);
+				}
+			}
+			debounce();
 
 		}
+		else if (i == 2) { // case fugtighed
+			modifier = 0;
+			command |= modifier << 25;
+		}
+
 	}
 
 }
 
-int encoderRead() {
+uint8_t encoderRead() {
 
 	enstate = digitalRead(en1);
 	state2 = digitalRead(en2);
@@ -221,7 +315,9 @@ void lcdwrite(uint8_t i) {
 
 }
 
-
+void debounce() {
+	while (encoderRead() == 3) { delay(100); }
+}
 
 unsigned long readcmd(uint8_t d, uint8_t c, uint8_t b, uint8_t a) {
 	unsigned long data;
