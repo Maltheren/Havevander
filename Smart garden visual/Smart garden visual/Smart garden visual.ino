@@ -4,15 +4,26 @@
  Author:	Malthe Holm Sennels. hest
 */
 #include <LiquidCrystal.h>
+#include <EEPROM.h>
+#include <dht.h>
+
 #define ch1 5
 #define	ch2	4
 #define	ch3	3
+#define in1	A0
+#define in2	A1
+#define in3 A2
+#define minfugt	225
+#define maxfugt	600
 #define en1	6
 #define en2 7
 #define sw A3
+#define EEPROMSIZE 512;
+#define DHT_Pin 
 LiquidCrystal lcd(13, 12, 8, 9, 10, 11);
 
-long cmddata[50];
+unsigned long cmddata[100];
+
 bool executed[100];
 int Tnow = 0;
 int	dagnow = 0;
@@ -38,6 +49,7 @@ void setup() {
 	enlast = digitalRead(en1);
 	Serial.println("startup succes");
 	lcdwrite(cursor);
+
 }
 
 
@@ -68,22 +80,27 @@ void loop() {
 	}
 	//lcdwrite(cursor);
 	input = 0;
+	int dta1 = map(analogRead(in1), maxfugt, minfugt, 0, 100);
+	int dta2 = map(analogRead(in2), maxfugt, minfugt, 0, 100);
+	int dta3 = map(analogRead(in3), maxfugt, minfugt, 0, 100);
+	Serial.println(dta3);
+	delay(200);
 }
 
 void Data() {
 	Serial.println("Alarmer");
 	lcd.clear();
-	int dta1 = map(analogRead(ch1), 0, 1024, 0, 100);
-	int dta2 = map(analogRead(ch2), 0, 1024, 0, 100);
-	int dta3 = map(analogRead(ch3), 0, 1024, 0, 100);
+	int dta1 = map(analogRead(in1), maxfugt, minfugt, 0, 100);
+	int dta2 = map(analogRead(in2), maxfugt, minfugt, 0, 100);
+	int dta3 = map(analogRead(in3), maxfugt, minfugt, 0, 100);
 	lcd.setCursor(0, 0);
-	lcd.print(100);
+	lcd.print(dta1);
 	lcd.print("%");
 	lcd.setCursor(6, 0);
-	lcd.print(100);
+	lcd.print(dta2);
 	lcd.print("%");
 	lcd.setCursor(12, 0);
-	lcd.print(100);
+	lcd.print(dta3);
 	lcd.print("%");
 	lcd.setCursor(1, 1);
 	lcd.print("ch1");
@@ -103,10 +120,10 @@ void Data() {
 
 void alarm() {
 
-	uint8_t cursor2 = 0;
+	int8_t cursor2 = 0;
 	lcd.setCursor(0, 0);
 	lcd.clear();
-	lcd.println("Ny alarm");
+	lcd.println("Ny alarm       ");
 	lcd.setCursor(0, 1);
 	lcd.print("Alarmliste");
 	uint8_t i = 0;
@@ -130,7 +147,7 @@ void alarm() {
 		}
 	}
 	debounce();
-	if (cursor2 == 0) {					// ny alarm
+	if (cursor2 == 0) {					// ny alarm <<<<<<<<<
 		unsigned long command = 0x10000000;
 		lcd.clear();
 		lcd.setCursor(0, 0);
@@ -254,30 +271,142 @@ void alarm() {
 			lcd.clear();
 			lcd.setCursor(0, 0);
 			lcd.print("Ugedag: ");
-			String dage[] = { "Hver dag","Mandag   ", "Tirsdag  ", "Onsdag   ", "Torsdag  ", "Fredag   ", "Lørdag   ", "Søndag   " };
+			String dage[] = { "Hver dag", "Mandag  ", "Tirsdag ", "Onsdag  ", "Torsdag  ", "Fredag   ", "L0rdag   ", "S0ndag   ", " " };
 			cursor2 = 0;
 			i = 0;
 			while (i != 3) {
-				i = encoderRead();							// <=========================================
+				i = encoderRead();
 				if (i == 1) {
-					cursor++;
-					if (cursor > 7) {
-						cursor = 0;
+					cursor2++;
+					Serial.println(cursor2);
+					if (cursor2 > 7) {
+						cursor2 = 0;
 					}
-					lcd.setCursor(0, 0);
+					modifier = cursor2;
+					lcd.setCursor(0, 1);
+					lcd.print(dage[cursor2]);
+				}
+				if (i == 2) {
+					cursor2--;
+					if (cursor2 < 0) {
+						cursor2 = 7;
+					}
+					modifier = cursor2;
+					lcd.setCursor(0, 1);
 					lcd.print(dage[cursor2]);
 				}
 			}
+			command |= modifier << 11;
+			Serial.println(command, BIN);
 			debounce();
+			lcd.clear();
+			lcd.setCursor(0, 0);
+			lcd.print("Stopbetingelse:");
+			i = 0;
+			while (i != 3) {
+				i = encoderRead();
+				if (i == 1) {
+					lcd.setCursor(0, 1);
+					lcd.print("tid: ");
+					state = 1;
+				}
+				if (i == 2) {
+					lcd.setCursor(0, 1);
+					lcd.print("fugt:");
+					state = 0;
+				}
+			}
+			debounce();
+			i = 0;
+			int value = 0;
+
+			if (state == 1) {	//stopbetingelse: tid.
+				modifier = 1;
+				command |= modifier << 10;
+				lcd.setCursor(10, 1);
+
+
+				while (i != 3) {
+					i = encoderRead();
+					if (i == 1) {
+						value++;
+						if (value > 1020) {
+							value = 1020;
+						}
+
+						lcd.setCursor(5, 1);
+						lcd.print("      ");
+						lcd.setCursor(5, 1);
+						lcd.print(value);
+						lcd.print("s");
+
+					}
+					if (i == 2) {
+						value--;
+						if (value < 1) {
+							value = 1;
+						}
+						lcd.setCursor(5, 1);
+						lcd.print("      ");
+						lcd.setCursor(5, 1);
+						lcd.print(value);
+						lcd.print("s");
+					}
+				}
+				debounce();
+				command |= value;
+				//FUCKING NICE 
+			}
+			else {				//stopbetingelse: fugtighed.
+				value = 5;
+				modifier = 1;
+				command |= modifier << 10;
+				lcd.setCursor(5, 1);
+				lcd.print("5%");
+				while (i != 3) {
+					i = encoderRead();
+					if (i == 1) {
+						value++;
+						if (value > 100) {
+							value = 100;
+						}
+						lcd.setCursor(5, 1);
+						lcd.print("      ");
+						lcd.setCursor(5, 1);
+						lcd.print(value);
+						lcd.print("%");
+
+					}
+					if (i == 2) {
+						value--;
+						if (value < 5) {
+							value = 5;
+						}
+						lcd.setCursor(5, 1);
+						lcd.print("      ");
+						lcd.setCursor(5, 1);
+						lcd.print(value);
+						lcd.print("%");
+					}
+				}
+
+				debounce();
+				command |= map(value, 0, 100, 0, 1023);
+
+			}
 
 		}
 		else if (i == 2) { // case fugtighed
 			modifier = 0;
 			command |= modifier << 25;
 		}
+		Serial.println(command, BIN);
+		AddCmd(command);
+	}
+	else {				//liste over alarmer
+
 
 	}
-
 }
 
 uint8_t encoderRead() {
@@ -303,6 +432,32 @@ uint8_t encoderRead() {
 	return 0;
 }
 
+
+void AddCmd(unsigned long) {
+	int length = arraylength();
+	EEPROM.update(0, length);
+}
+
+void readcmd() {
+	uint8_t a = 0;
+	uint8_t b = 0;
+	uint8_t c = 0;
+	uint8_t d = 0;
+	int length = EEPROM.read(0);		// med dette menes antal longs dvs en long = 4 bytes
+	int k = 1;
+	for (int j = 0; j != length; j++) {
+		a = EEPROM.read(k);
+		k++;
+		b = EEPROM.read(k);
+		k++;
+		c = EEPROM.read(k);
+		k++;
+		d = EEPROM.read(k);
+		cmddata[j] = construct(a, b, c, d);
+		k++;
+	}
+}
+
 void lcdwrite(uint8_t i) {
 	lcd.clear();
 	i = constrain(i, 0, 4);
@@ -319,18 +474,18 @@ void debounce() {
 	while (encoderRead() == 3) { delay(100); }
 }
 
-unsigned long readcmd(uint8_t d, uint8_t c, uint8_t b, uint8_t a) {
+unsigned long construct(uint8_t d, uint8_t c, uint8_t b, uint8_t a) {
 	unsigned long data;
 	data = a + (b << 8) + (c << 16) + (d << 24);
 	return data;
 }
 
-void writearray(unsigned long k) {
+int arraylength() {
 	int x = 0;
 	while (cmddata[x] != 0) {
 		x++;
 	}
-	cmddata[x] = k;
+	return x;
 }
 
 unsigned long subbyte(unsigned long input, int from, int length) {			//subbyte(long, from, to); inkluderer 1 from og to (start 0)
