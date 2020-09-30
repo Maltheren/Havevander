@@ -3,9 +3,11 @@
  Created:	9/13/2020 7:07:33 PM
  Author:	Malthe Holm Sennels. hest
 */
+
+#include <DHT_U.h>
+#include <dht.h>
 #include <LiquidCrystal.h>
 #include <EEPROM.h>
-#include <dht.h>
 
 #define ch1 5
 #define	ch2	4
@@ -19,7 +21,10 @@
 #define en2 7
 #define sw A3
 #define EEPROMSIZE 512;
-#define DHT_Pin 
+#define DHT_Pin	A6
+
+DHT dht = DHT(DHT_Pin, DHT11);
+
 LiquidCrystal lcd(13, 12, 8, 9, 10, 11);
 
 unsigned long cmddata[100];
@@ -39,7 +44,7 @@ void setup() {
 	//lcd.print("smartgarden");
 	lcd.setCursor(0, 1);
 	//lcd.print("V. 0.91");
-
+	dht.begin();
 	pinMode(ch1, OUTPUT);
 	pinMode(ch2, OUTPUT);
 	pinMode(ch3, OUTPUT);
@@ -80,19 +85,15 @@ void loop() {
 	}
 	//lcdwrite(cursor);
 	input = 0;
-	int dta1 = map(analogRead(in1), maxfugt, minfugt, 0, 100);
-	int dta2 = map(analogRead(in2), maxfugt, minfugt, 0, 100);
-	int dta3 = map(analogRead(in3), maxfugt, minfugt, 0, 100);
-	Serial.println(dta3);
-	delay(200);
 }
 
 void Data() {
-	Serial.println("Alarmer");
 	lcd.clear();
 	int dta1 = map(analogRead(in1), maxfugt, minfugt, 0, 100);
 	int dta2 = map(analogRead(in2), maxfugt, minfugt, 0, 100);
 	int dta3 = map(analogRead(in3), maxfugt, minfugt, 0, 100);
+	int air = dht.readHumidity();
+	int temp = dht.readTemperature();
 	lcd.setCursor(0, 0);
 	lcd.print(dta1);
 	lcd.print("%");
@@ -113,8 +114,15 @@ void Data() {
 	lcd.setCursor(0, 0);
 	lcd.print("Luftfugtighed:");
 	lcd.setCursor(0, 1);
-	lcd.print(100);
+	lcd.print(air);
 	lcd.print("%");
+	while (encoderRead() != 3) { delay(10); }
+	lcd.clear();
+	lcd.setCursor(0, 0);
+	lcd.print("Temperatur:");
+	lcd.setCursor(0, 1);
+	lcd.print(temp);
+	lcd.print(" C");
 	while (encoderRead() != 3) { delay(10); }
 }
 
