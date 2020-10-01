@@ -5,7 +5,6 @@
 */
 
 #include <DHT_U.h>
-#include <dht.h>
 #include <LiquidCrystal.h>
 #include <EEPROM.h>
 
@@ -44,7 +43,7 @@ void setup() {
 	//lcd.print("smartgarden");
 	lcd.setCursor(0, 1);
 	//lcd.print("V. 0.91");
-	dht.begin();
+
 	pinMode(ch1, OUTPUT);
 	pinMode(ch2, OUTPUT);
 	pinMode(ch3, OUTPUT);
@@ -404,10 +403,135 @@ void alarm() {
 			}
 
 		}
-		else if (i == 2) { // case fugtighed
+		else if (i == 2) { // case fugtighed <<<<<<<<<<<<<
 			modifier = 0;
 			command |= modifier << 25;
+			lcd.clear();
+			lcd.setCursor(0, 0);
+			lcd.print("Startfugtighed:");
+			lcd.setCursor(6, 1);
+			lcd.print("%");
+			i = 0;
+			int value1 = 0;
+			while (i != 3) {
+				i = encoderRead();
+				if (i == 1) {
+					value1++;
+					if (value1 > 80) {
+						value1 = 80;
+					}
+					lcd.setCursor(0, 1);
+					lcd.write(value1);
+
+				}
+				if (i == 2) {
+					value1--;
+					if (value1 < 10) {
+						value1 = 10;
+					}
+				}
+
+			}
+			modifier = map(value1, 0, 100, 0, 1023);
+			command |= modifier << 15;		/// ========================================
+			debounce();
+
+			lcd.clear();
+			lcd.setCursor(0, 0);
+			lcd.print("Stopbetingelse:");
+			i = 0;
+			while (i != 3) {
+				i = encoderRead();
+				if (i == 1) {
+					lcd.setCursor(0, 1);
+					lcd.print("tid: ");
+					state = 1;
+				}
+				if (i == 2) {
+					lcd.setCursor(0, 1);
+					lcd.print("fugt:");
+					state = 0;
+				}
+			}
+			debounce();
+			i = 0;
+			int value = 0;
+
+			if (state == 1) {	//stopbetingelse: tid.
+				modifier = 1;
+				command |= modifier << 10;
+				lcd.setCursor(10, 1);
+
+
+				while (i != 3) {
+					i = encoderRead();
+					if (i == 1) {
+						value++;
+						if (value > 1020) {
+							value = 1020;
+						}
+
+						lcd.setCursor(5, 1);
+						lcd.print("      ");
+						lcd.setCursor(5, 1);
+						lcd.print(value);
+						lcd.print("s");
+
+					}
+					if (i == 2) {
+						value--;
+						if (value < 1) {
+							value = 1;
+						}
+						lcd.setCursor(5, 1);
+						lcd.print("      ");
+						lcd.setCursor(5, 1);
+						lcd.print(value);
+						lcd.print("s");
+					}
+				}
+				debounce();
+				command |= value;
+				//FUCKING NICE 
+			}
+			else {				//stopbetingelse: fugtighed.
+				value = value1 + 10;
+				modifier = 0;
+				command |= modifier << 10;
+				lcd.setCursor(5, 1);
+				lcd.print(value1 + 10);
+				while (i != 3) {
+					i = encoderRead();
+					if (i == 1) {
+						value++;
+						if (value > 90) {
+							value = 100;
+						}
+						lcd.setCursor(5, 1);
+						lcd.print("      ");
+						lcd.setCursor(5, 1);
+						lcd.print(value);
+						lcd.print("%");
+
+					}
+					if (i == 2) {
+						value--;
+						if (value < value1 + 10) {
+							value = value1 + 10;
+						}
+						lcd.setCursor(5, 1);
+						lcd.print("      ");
+						lcd.setCursor(5, 1);
+						lcd.print(value);
+						lcd.print("%");
+					}
+				}
+				modifier = map(value, 0, 100, 0, 1023);
+				command |= modifier;
+				debounce();
+			}
 		}
+
 		Serial.println(command, BIN);
 		AddCmd(command);
 	}
@@ -441,28 +565,32 @@ uint8_t encoderRead() {
 }
 
 
-void AddCmd(unsigned long) {
-	int length = arraylength();
-	EEPROM.update(0, length);
+void AddCmd(unsigned long input) {
+
+	int k = arraylength();
+
+	EEPROM.update(k, subbyte(input, 1, 7));
+	EEPROM.update(k + 1, subbyte(input, 9, 7));
+	EEPROM.update(k + 2, subbyte(input, 17, 7));
+	EEPROM.update(k + 3, subbyte(input, 25, 7));
 }
 
-void readcmd() {
+void readcmd(int x) {			//omskriv
 	uint8_t a = 0;
 	uint8_t b = 0;
 	uint8_t c = 0;
 	uint8_t d = 0;
-	int length = EEPROM.read(0);		// med dette menes antal longs dvs en long = 4 bytes
-	int k = 1;
-	for (int j = 0; j != length; j++) {
-		a = EEPROM.read(k);
-		k++;
-		b = EEPROM.read(k);
-		k++;
-		c = EEPROM.read(k);
-		k++;
-		d = EEPROM.read(k);
+
+	for (int j = 0; j != EEPROM.read(1); j++) {
+		a = EEPROM.read(x);
+		x++;
+		b = EEPROM.read(x);
+		x++;
+		c = EEPROM.read(x);
+		x++;
+		d = EEPROM.read(x);
 		cmddata[j] = construct(a, b, c, d);
-		k++;
+		x++;
 	}
 }
 
@@ -489,9 +617,9 @@ unsigned long construct(uint8_t d, uint8_t c, uint8_t b, uint8_t a) {
 }
 
 int arraylength() {
-	int x = 0;
-	while (cmddata[x] != 0) {
-		x++;
+	int x = 1;
+	while (EEPROM[2] != B11111111) {
+		x += 4;
 	}
 	return x;
 }
@@ -514,7 +642,7 @@ unsigned long subbyte(unsigned long input, int from, int length) {			//subbyte(l
 	return output;
 }
 
-void command(unsigned long k) {
+void commandinterprit(unsigned long k) {
 	bool start = false;
 
 	if (subbyte(k, 1, 3) == 1) {
