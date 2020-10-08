@@ -43,7 +43,6 @@ void setup() {
 	//lcd.print("smartgarden");
 	lcd.setCursor(0, 1);
 	//lcd.print("V. 0.91");
-
 	pinMode(ch1, OUTPUT);
 	pinMode(ch2, OUTPUT);
 	pinMode(ch3, OUTPUT);
@@ -58,6 +57,10 @@ void setup() {
 
 
 void loop() {
+	if (Serial.available() > 3) {
+		Serialinterprit();
+	}
+
 
 	int input = encoderRead();
 	if (input == 1) {
@@ -84,6 +87,16 @@ void loop() {
 	}
 	//lcdwrite(cursor);
 	input = 0;
+}
+
+
+void Serialinterprit() {
+	unsigned long command;
+	while (Serial.available() != 0) {
+		command << 8;
+		command |= Serial.read();
+	}
+	Serial.println();
 }
 
 void Data() {
@@ -536,8 +549,106 @@ void alarm() {
 		AddCmd(command);
 	}
 	else {				//liste over alarmer
+		cursor2 = 2;
+		lcd.clear();
+		lcd.setCursor(0, 0);
+		lcd.print("Alarmer:");
+		i = 0;
+		while (i != 3) {
+
+			i = encoderRead();
+			if (i == 1) {
+				cursor2++;
+				if (cursor2 > 50) {
+					cursor2 = 50;
+					lcd.setCursor(0, 0);
+					lcd.print(EEPROM[cursor2] - 1);
+					lcd.setCursor(0, 1);
+					lcd.print(EEPROM[cursor2]);
+
+				}
+			}
+			if (i == 2) {
+				cursor2--;
+				if (cursor2 < 2) {
+					cursor2 = 2;
+				}
+				lcd.setCursor(0, 0);
+				if (cursor2 == 2) {
+					lcd.print("Alarmer:         ");
+				}
+				else {
+					lcd.print(label(cursor));
+				}
+				lcd.setCursor(0, 1);
+				lcd.print(label(cursor));
+			}
+
+		}
+	}
+}
 
 
+String label(int input) {
+	String output;
+	unsigned long constructer;
+	if (subbyte(EEPROM[input], 1, 3) == 1) {
+		constructer = construct(EEPROM[input], EEPROM[input + 1], EEPROM[input + 2], EEPROM[input + 3]);
+		output = "C";
+		output += subbyte(constructer, 5, 1);
+		if (subbyte(constructer, 7, 0) == 1) {
+			output += "T";
+			int eftermidnat = subbyte(constructer, 8, 10);
+			int hour = eftermidnat / 60;
+			if (hour < 10) {
+				output += "0" + hour;
+			}
+			else {
+				output += hour;
+			}
+			output += ":";
+			int minute = (eftermidnat % 60) * 60;
+			if (minute < 10) {
+				output += "0" + minute;
+			}
+			else {
+				output += minute;
+			}
+			output += "D";
+			String dage[] = { "h", "m", "t" , "o", "T", "f", "l", "s" };
+			output += dage[subbyte(constructer, 19, 2)];
+			if (subbyte(constructer, 22, 0) == 1) {   //stop = tid
+				output += "T";
+				output += subbyte(constructer, 23, 9);
+				output += "s";
+			}
+			else {						//stop fugtighed
+				output += "F";
+				output += map(subbyte(constructer, 23, 9), 0, 1024, 0, 100);
+				output += "%";
+			}
+		}
+		else {
+			output += "F";
+			output += map(subbyte(constructer, 8, 9), 0, 1024, 0, 100);
+			output += "%";
+
+			if (subbyte(constructer, 22, 0) == 1) {   //stop = tid
+				output += "T";
+				output += subbyte(constructer, 23, 9);
+				output += "s";
+			}
+			else {						//stop fugtighed
+				output += "F";
+				output += map(subbyte(constructer, 23, 9), 0, 1024, 0, 100);
+				output += "%";
+			}
+
+		}
+		return output;
+	}
+	else {
+		return "ingen Kommando";
 	}
 }
 
@@ -592,6 +703,7 @@ void readcmd(int x) {			//omskriv
 		cmddata[j] = construct(a, b, c, d);
 		x++;
 	}
+
 }
 
 void lcdwrite(uint8_t i) {
@@ -647,15 +759,16 @@ void commandinterprit(unsigned long k) {
 
 	if (subbyte(k, 1, 3) == 1) {
 		int channel = subbyte(k, 5, 1); //finder den channel der skal bruges
-		if (subbyte(k, 7, 0) == 1) {
-			//case tid start
+		if (subbyte(k, 7, 0) == 1) {			//case tid start <<<<
+
 			int Tstart = subbyte(k, 8, 10);
 			int	dag = subbyte(k, 19, 2);
-			/*if (dag == dagnow || dag == 0) {
+			if (dag == dagnow || dag == 0) {
 				if (Tstart > Tnow) {
 					start = true;
-				}
-			}*/
+				}									//Rework <<================================
+			}
+
 			if (subbyte(k, 22, 0) == 1) {
 				//case tid stop
 
@@ -674,13 +787,35 @@ void commandinterprit(unsigned long k) {
 
 			}
 		}
-		else {
+		else {				// case fugtigtighed
+
+
+
+
+
 
 		}
 	}
 
 }
 
+// Læser sensor med 0 - 100%
+int ReadSensor(int channel) {
+	int input;
+	if (channel == 1) {
+		input = analogRead(in1);
+	}
+	else if (channel == 2) {
+		input = analogRead(in2);
+	}
+	else if (channel == 3) {
+		input = analogRead(in3);
+	}
+	else {
+		return -1;
+	}
+	return(map(input, minfugt, maxfugt, 100, 0));
+}
 void action() {
 
 
